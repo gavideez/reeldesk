@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f4edfa">
+  <title>Reel Desk</title>
+  <style>
+    /* ===== Paintspire-style UI : soft lavender, white rounded cards, purple gradient, pill controls ===== */
+    :root {
+      --bg: #f4edfa;
+      --card: #ffffff;
+      --card-inner: #f8f6fc;
+      --field: #f3f3f8;
+      --ln: #ece6f4;
+      --tx: #2a3342;
+      --mu: #8e94a3;
+      --ac: #b35cff;
+      --ac-dark: #9a3fe8;
+      --ac-soft: #f3e8ff;
+      --cyan: #00aeef;
+      --peach: #ffb26b;
+      --grad-purple: linear-gradient(160deg, #9f5cf7 0%, #c86bff 100%);
+      --grad-cyan: linear-gradient(160deg, #00aeef 0%, #5fb8ff 100%);
+      --shadow: 0 12px 32px rgba(125, 80, 185, 0.10);
+      --shadow-lg: 0 16px 36px rgba(160, 92, 247, 0.35);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--tx);
+      font: 14px/1.45 Inter, Roboto, "Noto Sans Sinhala", system-ui, -apple-system, sans-serif;
+      padding-bottom: 118px;
+      min-height: 100vh;
+    }
+
+    /* ---- header ---- */
+    header {
+      padding: calc(16px + env(safe-area-inset-top)) 22px 12px;
+      background: linear-gradient(var(--bg) 78%, rgba(244, 237, 250, 0));
+      position: sticky; top: 0; z-index: 10;
+    }
+    header .top-bar { display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 22px; line-height: 1.2; font-weight: 800; letter-spacing: -0.4px; color: var(--tx); }
+    header small { color: var(--ac); text-transform: uppercase; letter-spacing: 1.6px; font-size: 11px; font-weight: 700; display: block; margin-bottom: 4px; }
+    .creator-credit { font-size: 11px; color: var(--mu); font-weight: 500; letter-spacing: 0.4px; margin-top: 4px; }
+
+    main { padding: 6px 18px 24px; max-width: 768px; margin: 0 auto; }
+
+    /* ---- floating bottom nav with line icons + dot indicator ---- */
+    nav {
+      position: fixed; left: 14px; right: 14px; bottom: calc(12px + env(safe-area-inset-bottom));
+      display: flex; padding: 8px 4px 10px;
+      background: #fff; border-radius: 30px;
+      box-shadow: 0 10px 40px rgba(120, 70, 190, 0.20);
+      z-index: 20; max-width: 740px; margin: 0 auto;
+    }
+    nav b { flex: 1; position: relative; text-align: center; padding: 8px 0 12px; font-size: 10px; color: #b4b8c4; font-weight: 600; cursor: pointer; transition: color .2s; }
+    nav b i { display: block; height: 24px; margin-bottom: 3px; line-height: 0; }
+    nav b i svg { width: 24px; height: 24px; transition: transform .2s; }
+    nav b.on { color: var(--ac); }
+    nav b.on i svg { transform: translateY(-2px); }
+    nav b.on::after { content: ""; position: absolute; left: 50%; bottom: 1px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--ac); }
+
+    /* ---- Tint / Shade style segmented day selector ---- */
+    .chips { display: flex; gap: 4px; overflow-x: auto; padding: 5px; margin-bottom: 16px; background: #ebe3f3; border-radius: 999px; scrollbar-width: none; }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip { flex: none; padding: 9px 20px; border-radius: 999px; background: transparent; border: 0; font-weight: 600; font-size: 13px; color: var(--mu); cursor: pointer; transition: .2s; }
+    .chip.on { background: #fff; color: var(--tx); box-shadow: 0 3px 10px rgba(80, 40, 140, 0.16); }
+
+    .bar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
+    .bar input { flex: 1 1 120px; min-width: 0; }
+    .bar button { padding: 10px 13px; font-size: 11px; letter-spacing: .6px; white-space: nowrap; }
+
+    /* ---- buttons: outlined purple pills, uppercase (like the SAVE button) ---- */
+    button, input, textarea { font: inherit; color: inherit; }
+    button { background: #fff; border: 2px solid var(--ac); color: var(--ac); border-radius: 999px; padding: 11px 18px; font-weight: 700; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: .15s; }
+    button:active { transform: scale(0.97); background: var(--ac-soft); }
+        .pri { background: #fbf6ff; color: var(--ac); border: 2px solid var(--ac); box-shadow: 0 6px 18px rgba(179, 92, 255, 0.18); }
+
+    input, textarea { width: 100%; background: var(--field); border: 1.5px solid transparent; border-radius: 16px; padding: 11px 14px; color: var(--tx); transition: .2s; }
+    input::placeholder, textarea::placeholder { color: #a9aebb; }
+    input:focus, textarea:focus { outline: 0; border-color: var(--ac); background: #fff; box-shadow: 0 0 0 4px rgba(179, 92, 255, 0.13); }
+    input[type=date] { color-scheme: light; min-height: 44px; }
+
+    /* ---- cards ---- */
+    .grp { background: var(--card); border: 0; border-radius: 26px; padding: 16px; margin-bottom: 18px; box-shadow: var(--shadow); }
+    .gh { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .gn { font-weight: 800; font-size: 17px; background: none; border: 0; border-bottom: 2px solid #efe6fa; border-radius: 0; color: var(--tx); padding: 6px 2px; }
+    .gn:focus { background: none; box-shadow: none; border-bottom-color: var(--ac); }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px; margin-bottom: 12px; background: var(--card-inner); border: 0; border-radius: 20px; position: relative; }
+    .row label { grid-column: span 2; font-size: 10px; color: var(--mu); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .row label.n { grid-column: span 1; }
+    .row textarea { min-height: 46px; resize: vertical; }
+    .row label input, .row label textarea { margin-top: 5px; background: #fff; text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 14px; }
+
+    /* ghost round delete buttons */
+    .x { background: #f1edf7 !important; border: 0 !important; color: var(--mu) !important; width: 34px; height: 34px; padding: 0 !important; border-radius: 50% !important; display: inline-grid; place-items: center; font-size: 14px; letter-spacing: 0; text-transform: none; flex: none; }
+    .rx { position: absolute; top: -9px; right: -5px; width: 30px; height: 30px; background: #fff !important; box-shadow: 0 4px 12px rgba(90,50,150,.18); font-size: 12px; }
+
+    .add { width: 100%; border: 2px solid #e4d2fb; color: var(--ac); background: transparent; box-shadow: none; }
+    .big { padding: 15px; margin-bottom: 16px; }
+
+    /* status pills */
+    .st { padding: 11px; text-align: center; border-radius: 999px; background: #f0eef5; border: 0; font-weight: 700; font-size: 12px; color: var(--mu); align-self: end; cursor: pointer; transition: .2s; }
+    .s1 { color: #0094cc; background: rgba(0, 174, 239, 0.13); }
+    .s2 { color: var(--ac-dark); background: rgba(179, 92, 255, 0.15); }
+    .s3 { color: #dc7410; background: rgba(255, 178, 107, 0.28); }
+
+    /* grand total = gradient hero card with glassy discs */
+    .gt { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; position: relative; overflow: hidden; min-height: 120px; justify-content: center; padding: 22px; border-radius: 28px; margin-bottom: 16px; background: var(--grad-purple); box-shadow: var(--shadow-lg); }
+    .gt::before { content: ""; position: absolute; right: -18px; top: 18px; width: 150px; height: 64px; border-radius: 50%; transform: rotate(-14deg); background: radial-gradient(ellipse at 30% 30%, #8fd0ff 0%, #c58bff 45%, #ffc98a 100%); opacity: .92; }
+    .gt::after { content: ""; position: absolute; right: 36px; top: 62px; width: 110px; height: 46px; border-radius: 50%; transform: rotate(-8deg); background: radial-gradient(ellipse at 70% 30%, #ffe3b0 0%, #ff9fd6 50%, #7db4ff 100%); opacity: .85; }
+    .gt span, .gt b { position: relative; z-index: 1; }
+    .gt b { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+    .gt span { font-size: 11px; letter-spacing: 2px; font-weight: 700; color: rgba(255, 255, 255, 0.82); }
+
+    .sub, .lt { color: var(--ac); font-weight: 700; white-space: nowrap; }
+    .sub { background: var(--ac-soft); padding: 6px 12px; border-radius: 999px; font-size: 13px; }
+    .lt { grid-column: span 2; text-align: right; align-self: center; font-size: 16px; color: var(--ac-dark); }
+
+    /* project cards = gradient thumbnails like the reference home screen */
+    .pj { display: flex; justify-content: space-between; align-items: center; cursor: pointer; position: relative; overflow: hidden; min-height: 112px; }
+    .grp.pj { background: var(--grad-purple); box-shadow: var(--shadow-lg); }
+    .grp.pj:nth-of-type(even) { background: var(--grad-cyan); box-shadow: 0 16px 36px rgba(0, 174, 239, 0.30); }
+    .pj::before { content: ""; position: absolute; right: 44px; bottom: -14px; width: 130px; height: 56px; border-radius: 50%; transform: rotate(-12deg); background: radial-gradient(ellipse at 30% 30%, #9fd8ff 0%, #c58bff 50%, #ffd09a 100%); opacity: .75; pointer-events: none; }
+    .pj > div { position: relative; z-index: 1; }
+    .pj b { color: #fff !important; font-size: 17px !important; font-weight: 800; }
+    .pj small { color: rgba(255, 255, 255, 0.88); font-size: 12px; font-weight: 500; }
+    .pj .x { position: relative; z-index: 1; background: rgba(255, 255, 255, 0.22) !important; color: #fff !important; }
+    .pj:active { transform: scale(0.985); }
+    .empty { text-align: center; color: var(--mu); padding: 50px 20px; }
+
+    .gs { display: flex; gap: 26px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.28); width: 100%; position: relative; z-index: 1; }
+    .gs > div { display: flex; flex-direction: column; gap: 2px; }
+    .gt .gs b { font-size: 17px; }
+    .gt b.neg { color: #ffd0d0; }
+    .gh .ttl { flex: 1; font-weight: 800; font-size: 17px; color: var(--tx); }
+    .row label select { width: 100%; margin-top: 5px; background: #fff; border: 1.5px solid transparent; border-radius: 16px; padding: 11px 14px; font: inherit; font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--tx); }
+    .row label select:focus { outline: 0; border-color: var(--ac); box-shadow: 0 0 0 4px rgba(179, 92, 255, 0.13); }
+    .ia { grid-column: span 2; text-align: right; font-size: 11px; font-weight: 600; color: var(--cyan); }
+    .ia[hidden] { display: none; }
+    .ia.neg { color: #e0457b; }
+    #pr { display: none; }
+    @media print {
+      * { -webkit-print-color-adjust: exact; }
+      body { background: #fff; color: #000; padding: 0; }
+      body > :not(#pr) { display: none!important; }
+      #pr { display: block; color: #000; font: 10px system-ui, "Noto Sans Sinhala", sans-serif; }
+      .pg { page-break-after: always; padding: 10mm; }
+      .pr-hdr { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #222; padding-bottom: 8px; margin-bottom: 12px; }
+      .pr-hdr h1 { font-size: 18px; margin: 0; }
+      .pr-hdr h2 { font-size: 13px; margin: 0; color: #444; }
+      .pr-credit { font-size: 9px; color: #666; text-transform: uppercase; font-weight: bold; }
+      h3 { font-size: 12px; margin: 12px 0 6px; background: #f0f0f5; padding: 4px 8px; border-left: 4px solid #333; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+      th, td { border: 1px solid #aaa; padding: 4px 6px; text-align: left; vertical-align: top; }
+      th { background: #1a1a2e; color: #fff; font-weight: 600; }
+      .r { text-align: right; }
+      @page { size: A4 landscape; margin: 5mm; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="top-bar">
+      <div>
+        <small id="st"></small>
+        <h1 id="t">Reel Desk</h1>
+      </div>
+    </div>
+    <div class="creator-credit">Creation by Gavindu Deesura</div>
+  </header>
+
+  <main></main>
+
+  <nav>
+    <b data-tab="proj"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></i>Projects</b>
+    <b data-tab="sched"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="12" rx="2.5"/><path d="M3 9l3-5h4L7 9M10 9l3-5h4l-3 5M17 9l3-5"/></svg></i>Schedule</b>
+    <b data-tab="budget"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6.5A1.5 1.5 0 0 1 5.5 5H17v3"/><rect x="3" y="8" width="18" height="12" rx="3"/><circle cx="16.5" cy="14" r="1.3"/></svg></i>Budget</b>
+  </nav>
+
+  <div id="pr"></div>
+
+  <script>
+    /* Android bridge: lets window.print() and the backup download work inside the app WebView */
+    (function () {
+      if (!window.AndroidBridge) return;
+      window.print = function () { AndroidBridge.print(); };
+      var blobs = {}, orig = URL.createObjectURL;
+      URL.createObjectURL = function (b) { var u = orig.call(URL, b); blobs[u] = b; return u; };
+      var click = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function () {
+        if (this.download && blobs[this.href]) {
+          var name = this.download, fr = new FileReader();
+          fr.onload = function () { AndroidBridge.saveFile(name, fr.result); };
+          fr.readAsText(blobs[this.href]);
+          return;
+        }
+        return click.call(this);
+      };
+    })();
+  </script>
+
+  <script id="wsd" type="text/plain">@
+>අවන්හල / ඉදිරිපිට පාර
+29|උදෑසන/ඇතුළත|මේරි කුලප්පු කරයි. අයෝනි උචිතගේ කනට ගසයි|මේරි,එරික්,උචිත,අයෝනි||ආහාර ගෙන ඉවර කර දෙදෙනෙකුගේ කෑම පිඟන් සහ බීම වීදුරු,මොහිතෝ වීදුරු 2ක්,චුයින්ගම්,රතු සුදු බන්ධන නූල||2
+30|උදෑසන/පිටත|මේරි කලන්තය දමයි|මේරි,එරික්||රතු සුදු බන්ධන නූල|කාර් එක|1
+34|පිටත/අවන්හල් පිරුණු පාර|මේරි එරික්ට ප්‍රථම හාදුව ලබා දේ. සප්‍රයිස් ප්‍රොපෝසල් එකක් සඳහා පිරිසක් පසෙකින් සිටී|මේරි,එරික්,තරුණියන් 02,තරුණයන් 02||පාටි පොපර්,මංගල මුද්දක්,පාට පාට කොළ කැබලි රාශියක්,රතු සුදු බන්ධන නූල|කාර් එක|1
+>ඩිස්පැන්සරිය
+32|දිවා/ඇතුළත|මේරි විසින් එරික් තම සැමියා බව පවසයි|මේරි,එරික්,වෛද්‍යවරිය,හෙදිය 01||වෙද නළාව,රතු සුදු බන්ධන නූල||1
+60|දිවා/ඇතුළත|මේරි ගැබ්ගෙන බව දැනගනී|මේරි,එරික්,වෛද්‍යවරිය,හෙදිය 01,හෙදිය 02||වෙද නළාව,රතු සුදු බන්ධන නූල||
+>යකඩ වැඩපොළ
+17|උදෑසන/ඇතුළත|එරික් වාහනයේ පොත රැගෙන පැමිණේ|එරික්,සේවකයින් 03||වාහනයේ පොත ඇති ෆයිල් කවරය||
+17A|උදෑසන/ඇතුළත|වාහනය උකස් කරයි|එරික්,ලෝරන්ස්||නවරත්න මුද්ද,දුරකථනය,කාර් එකේ ලිපිගොනුව (ෆයිල් එක),ගිවිසුම් පත්‍ර||2
+>උස ගොඩනැගිල්ල
+01|රාත්‍රී/පිටත/ඇතුළත|එරික් දකින හීනය (One Take)|මේරි,එරික්||||
+@
+>හන්දිය කඩේ
+40|උදෑසන/ඇතුළත|ප්‍රියංවදා කිල්ලෝට මායාව කරයි. මල්කි පය පැටලී ඇද වැටෙයි.|ප්‍රියංවදා,මල්කි,ශාන්ත මුදලාලි,රංජනී||පන් මල්ල,රුපියල් නෝට්ටු,ෆ්‍රීසර් එක,අයිස් පැකට් දෙකක්,ටොෆි බෝතල්,ප්ලාස්ටික් බකට් එක,කඩයප්පං,සෙරප්පුව,කිල්ලෝටය||2
+50|දිවා/ඇතුළත|මල්කි එරික්ව හොරකමට හසු කරයි. මැජික් සන්දර්ශනය.|එරික්,මල්කි,මැජික් ශිල්පියා,රංජනී,ප්‍රියංවදා,ගමේ පිරිස 15||රෝස මල,පර්ස් එක,මැජික් ආම්පන්න,රතු සුදු බන්ධන නූල||3
+66|පිටත/හන්දිය|විශාක බයික් එකකින් පැමිණ එරික්ව රැගෙන යයි.|එරික්,විශාක||රතු සුදු බන්ධන නූල|මෝටර් බයික් එක|
+>පාර
+22|දිවා/පිටත|එරික් පෙට්‍රල් නොමැතිව කාර් එක නවතාගෙන සිටී. මල්කි පැමිණ එරික්ට සාප කරයි|එරික්,මල්කි||මුදල් සහිත ලියුම් කවරය,අයිස් පැකට්,ගමන් මල්ල (මේකප් බඩු දැමූ)|කාර් එක|2
+42|දිවා/පිටත|මල්කි එරික්ට හාදුවක් දී කනට ගසයි|එරික්,මල්කි,ප්‍රියංවදා||අයිස් පැකට් 1,රතු සුදු බන්ධන නූල|කාර් එක|2
+65|දිවා/පිටත|එරික් මල්කිට තර්ජනය කරයි|එරික්,මල්කි||ජංගම දුරකථනය,අයිස් පැකට්,රතු සුදු බන්ධන නූල||1
+>රබර් රොටි මඩුව
+25|රාත්‍රී/පිටත|විශාක එරික්ගේ අතේ නූලක් ගැටගසයි|එරික්,විශාක||සුදු අරක්කු බෝතලය,කුඩා වීදුරු දෙකක්,බුලත් කොළයේ එතූ රතු සුදු බන්ධන නූල|කාර් එක|1
+51|රාත්‍රී/පිටත|මල්කි ගැන කතාවෙයි|එරික්,විශාක||රතු සුදු බන්ධන නූල|කාර් එක|1
+57|සවස/පිටත|ගෙදර විපත ගැන කතාවෙයි|එරික්,විශාක||රතු සුදු බන්ධන නූල|කාර් එක|1
+@
+>මල්කි නිවස
+06|දිවා/පිටත|විශාක පැමිණ සුලෝගෙන් බ්ලෙන්ඩරය ඉල්ලයි (One Take)|විශාක,සුලෝ||පිපිඤ්ඤා ගෙඩිය,පිහිය,ෆේෂල් ද්‍රව්‍ය,ජංගම දුරකථනය,බ්ලෙන්ඩරය||2
+08|දිවා/ඇතුළත/කුස්සිය|මල්කි පැමිණ බ්ලෙන්ඩරය සොයයි|මල්කි,සුලෝ||කොමඩු ගෙඩිය||
+12|සවස/ඇතුළත/කුස්සිය|මල්කි සුලෝට නෝක්කාඩු කියයි|මල්කි,සුලෝ||කොමඩු ගෙඩිය,පිහිය,බ්ලෙන්ඩරය||2
+24|සවස/ඇතුළත|සුලෝ මල්කිට මනමාලිව පෙන්වයි|මල්කි,සුලෝ||ගමන් මල්ල (මේකප් බඩු දැමූ),මේරිගේ ඡායාරූපයක්||
+27|රාත්‍රී පිටත/වැරැන්ඩාව|මල්කි දුකින් සිටී. සුලෝ දුම් අල්ලයි|මල්කි,සුලෝ||දුම් කබලක්,සාම්බ්‍රාණි||1
+33|දිවා/ඇතුළත/සාලය|මල්කි නාන ගමන් අඬයි (One Take)|මල්කි,සුලෝ||සාරි ජැකට් එකක්||2
+37|දිවා/ඇතුළත/සාලය|මල්කි අවුලෙන් සිටී|මල්කි,සුලෝ||සාරිය,සාරි වර්ක් කරන උපකරණ||
+44|දිවා/ඇතුළත/සාලය|මල්කි පළිගැනීමේ සතුටින් සිටී. සුලෝ තුවාය පිටින් පැමිණේ|මල්කි,සුලෝ||තුවාය||
+48|උදෑසන/සාලය|සුලෝ සාරි වර්ක් කරමින් සිටී|මල්කි,සුලෝ||සාරිය||
+54|සවස/සාලය|මල්කි එරමිණිය ගොතාගෙන සිටී|මල්කි||||
+@
+>මේරි නිවස
+13|සවස/ඇතුළත|මඟුල සංවිධානය කරයි|මේරි,කමනි,ඇල්බට්||කොන්තයක්,මරිය තුමියගෙ කුඩා පිළිරුවක්||1
+15|සවස/ආළින්දය|එරික්ට ඇමතුම|මේරි||ඉයර්ෆෝන් එක,දුරකථනය||2
+18|දිවා/ඇතුළත/මේරි කාමරය|මේරි තවමත් නිදා සිටී|මේරි,කමනි||ලොකු කිරි ජොග්ගුව||1
+18 දිගුව|දිවා/ඇතුළත/මේරි කාමරය|මේරි වාඩි වී කෑගසයි|මේරි||||
+18A|දිවා/ඇතුළත/ආළින්දය/සාලය|කමල් දේව දානය ගෙනෙයි|කමනි,කමල්||ටිෆින් බොක්ස් එකක්||1
+18A දිගුව|දිවා/ඇතුළත/ආළින්දය/සාලය|මේරි කෑගසාගෙන එයි|කමනි,කමල්,මේරි||||
+21|දිවා/ඇතුළත/මේරි කාමරය|කමනි දොස් කියයි|මේරි,කමනි||අව් කණ්ණාඩි කීපයක්,දුරකථනය||2
+26|රාත්‍රී/ඇතුළත/මේරි කාමරය|මේරි නටයි|මේරි||බ්ලූටූත් ස්පීකර් එක||
+>විශාක නිවස
+02C|උදෑසන/පිටත|විශාක පිටව යාමට සූදානම්ව සිටී. ප්‍රියංවදා රත්මල් කඩාගෙන පැමිණේ|විශාක,ප්‍රියංවදා||රත් මල් පොකුරක්,පූජා තැටිය,පහනක්,දෙහි ගෙඩියක්||
+20|දිවා/ඇතුළත|ප්‍රියංවදා නා පැමිණ පොතක් කියවයි|ප්‍රියංවදා||කොග්ගල නිළමේ පොත,ඔරේන්ජ් බාර්ලි,පැණි බුදි දීසිය,ඇඹලයෙක්||1
+47|රාත්‍රී/ඇතුළත/කාමරය|ප්‍රියංවදා නා පැමිණ ජප කරයි|ප්‍රියංවදා||ටවල් රැක් එක,තුවාය,ලී පුටුව,මල් යහන,පහන්,හඳුන් කූරු,පිච්චමල||
+@
+>වලව්ව
+07|දිවා/ඇතුළත|මඟුල කතා කරයි|එරික්,මේරි,අයිරාංගනී,විශාක,කමනි,ඇල්බට්||කැවිලි මේසය,මේරිලා ගෙනා තෑග්ග||1
+09|දිවා/පිටත|මේරි සහ එරික් කතා කරයි. මල්කි පැමිණේ|එරික්,මේරි,මල්කි,රියදුරු||ගස්ලබු බීම වීදුරු තැබූ ට්‍රේ එක|ජිප් එක,කාර් එක|2
+10|දිවා/ඇතුළත|මල්කි පැමිණ බ්ලෙන්ඩරය ඉල්ලයි|අයිරාංගනී,විශාක,කමනි,ඇල්බට්,මල්කි||||2
+35|උදෑසන/කාමරයක්|මේරිට මනමාලිට අන්ඳයි|මේරි,සුලෝ,මල්කි||මේකප් සෙට්,මල් බොකේ එක,මේකප් මිරර් එක||
+36|උදෑසන/ඇතුළත|එරික් මංගල දිනයට සූදානම් වෙයි|එරික්,අයිරාංගනී,විශාක||කෝට් එක,රතු සුදු බන්ධන නූල||
+38|රාත්‍රී/පිටත|මනමාලිගේ ආගමනය|එරික්,මේරි,අයිරාංගනී||මංගල ඡායාරූපය,මේරිගේ ගමන් මළු,මල් බොකේ එක,රතු සුදු බන්ධන නූල||
+39|රාත්‍රී කාමරය|එරික්ට විශාකගෙන් ඇමතුමක් එයි. පළමු මංගල රාත්‍රිය ඇරඹේ|එරික්,මේරි,විශාක (හඬ පමණි)||||
+Title Intro|දිවා/පිටත|මේරිගේ ආගමනය|එරික්,මේරි,අයිරාංගනී,මල්කි||මංගල ඡායාරූපය,මේරිගේ ගමන් මළු,මල් බොකේ එක,මුදල් දැමූ ලියුම් කවර,රතු සුදු බන්ධන නූල||
+03|උදෑසන/පිටත|පාර අසයි|මේරි,ඇල්බට්,කමනි,රියදුරු|||කාර් එක|
+05|උදෑසන/පිටත|මල්කිගෙන් පාර අසයි|මේරි,ඇල්බට්,කමනි,රියදුරු,මල්කි||කොමඩු ගෙඩිය,අයිස් පැකට්,වතුර බෝතලය|ජිප් එක|2
+@
+>වලව්ව
+01A|රාත්‍රී/කාමරය|එරික් සිහිනයෙන් අවදි වේ|එරික්||||
+02A|උදෑසන/ඉදිරිපිට පාර|වයසක පුද්ගලයා විට කා හුණු ගේට්ටු කණුවේ උලයි|වයසක පුද්ගලයා||මල් කපන පිහියක්,ටියුලිප් බෑග් එකක්,ජටා ලේන්සුවක්,බුලත් විට,හුණු||
+02B|උදෑසන/පිටත|එරික් කාර් එක සෝදමින් සිටී|එරික්,අයිරාංගනී||බේසමක්,රෙදි කැබැල්ලක්,බලු පැටවා ආකෘතිය (Dashboard),පැරණි ගුවන් විදුලිය|කාර් එක|2
+04|උදෑසන/පිටත|විශාක කාර් එක සෝදා නිම කරයි|විශාක,අයිරාංගනී||බේසම,රෙදි කැබැල්ල|කාර් එක|1
+11|දිවා/කුස්සිය|අයිරාංගනී මල්කිට බැනවදී|විශාක,අයිරාංගනී||කැවිලි මේසයේ පිඟන් කෝප්ප|කාර් එක|1
+14|දිවා/පිටත|මේරිගෙන් ඇමතුමක්|එරික්||ජංගම දුරකථනය||2
+16|රාත්‍රී කෑම මේසය|මේරිගේ ඇමතුම ගැන කතාවෙයි|එරික්,අයිරාංගනී||නූල්ස්,සම්බෝල සහිත කෑම පිඟන් දෙක||1
+19|දිවා/කුස්සිය|විශාක බිෆ් රැගෙන එයි|අයිරාංගනී,විශාක||කෙසෙල් කොළයක එතූ පාර්සලයක්||2
+28|රාත්‍රී කෑම මේසය|අයිරාංගනී කල්පනාවක සිටී|අයිරාංගනී||||
+31|දිවා/කුස්සිය|අයිරාංගනීගේ බිය ගැන විශාකට පවසයි|අයිරාංගනී,විශාක||සේදීමට වළං||1
+49|දිවා/අයිරාංගනී කාමරය|ගවුමක් තබා බලයි|අයිරාංගනී||විශාල අල්මාරිය,පැරණි මිණි ගවුම,පැරණි ඡායාරූපය,කන්නාඩි මේසය,සාරිය,ට්‍රන්කා පෙට්ටිය||1
+63|රාත්‍රී/කුස්සිය|එරික්ට උපදෙස් දෙයි|එරික්,අයිරාංගනී||රතු සුදු බන්ධන නූල||
+69|රාත්‍රී/කාමරය|එරික් බිය වී සිහිනයෙන් අවදි වේ|එරික්||රතු සුදු බන්ධන නූල||
+70|රාත්‍රී/පිටත|හූනියම වළලයි|ප්‍රියංවදා||සීනි අහුර,බකමුණා||
+@
+>වලව්ව
+41|උදෑසන/සාලය/කාමරය|මේරි නිදි වත්තෙන් පැමිණේ අයිරාංගනී හොල්මන් වෙයි|එරික්,මේරි,අයිරාංගනී||මේකප් බඩු,රෙදි රැක් එක,මංගල ගවුම,මසාජ් මැෂින් එක,තුවාය,මේරිගේ ගමන් මළු,මංගල ඡායාරූපය,රතු සුදු බන්ධන නූල|කාර් එක|2
+43|දිවා/කෑම මේසය|මේරි කෑම සකසා ඇත|එරික්,මේරි,අයිරාංගනී||දුම් දමන සුදු බත්,කිරිමාලු,පෙති කැපු ඉදුනු අඹ ගෙඩිය,පිඟන්,මංගල ඡායාරූපය||2
+45|දිවා/ඇතුළත|නෑදෑයන් පැමිණ ඇත|එරික්,මේරි,අයිරාංගනී,ලොකු අම්මා,ලොකු තාත්තා||මංගල ඡායාරූපය,ගෙන ආ තෑගි,ලී කැටයම් බස්තමක්,කැරකෙන ස්ටෑන්ඩ් ෆෑන් එකක්,බීම වීදුරු,ට්‍රේ එකක්,පාද සළඹ||1
+46|රාත්‍රී/කාමරය|මේරි එරික්ට නෝක්කාඩු කියයි|මේරි,එරික්,ලෝරන්ස් (හඬ පමණි)||ජංගම දුරකථනය,තුවාය,රෙදි රැක් එක,පුටුව||2
+52|උදෑසන/සාලය/කුස්සිය|නැන්දම්මා ලේලි වලියේ ආරම්භය|මේරි,අයිරාංගනී||ලිප,තැම්බු මඤ්ඤොක්කා,පලඟනාව,ටීවී එක,ඌරු මස් හට්ටිය,මංගල ඡායාරූපය||2
+53|සවස/කාමරය|අයිරාංගනී බැන්නාට මේරි හඬයි|මේරි,එරික්||ගමන් මලු,ජංගම දුරකථනය,අව් කන්නාඩි||3
+55|දිවා/කාමරය|මේරි ඇඳ යට තිබී අරක්කු බෝතලයක් ගනී|මේරි||තුවාය,බොඩි ලෝෂන් එක,සුදු අරක්කු බෝතලය||
+56|දිවා/සාලය|මේරි වෙරිමතින් අයිරාංගනී ඉදිරියට යයි|මේරි,අයිරාංගනී||කන්නාඩි (ඇස් කන්නාඩි),ඉංග්‍රීසි නවකතා පොත,ශොට් ග්ලාස් එක,අව් කන්නාඩි,මංගල ඡායාරූපය||
+58|රාත්‍රී ඇතුළත|රෙස්ලින් තරඟය|එරික්,මේරි,අයිරාංගනී||මංගල ඡායාරූපය||
+59|දිවා/පිටත|ලෝරන්ස් පොළිය රැගෙන යාමට එයි|මේරි,අයිරාංගනී,ලෝරන්ස්||අව් කන්නාඩි||1
+61|දිවා/පිටත|වික්‍රම ආගමනය|එරික්,මේරි,අයිරාංගනී,වික්‍රම,රෙබෙකා,රියදුරු||විදේශ ගමන් මළු,ගමන්මලු,සග්ලාස්,රත්තරන් දතක්|කාර් එක,මරුටි වෑන් එක|1
+62|දිවා/පිටත|වික්‍රමගේ හෑල්ල|එරික්,මේරි,අයිරාංගනී,වික්‍රම,රෙබෙකා||විදේශ ගමන් මළු,ගමන්මලු,සග්ලාස්,රත්තරන් දතක්||1
+64|උදෑසන/කාමරය/පිටත|මේරි සහ වාහනය අතුරුදන් බව වැටහේ|එරික්,රෙබෙකා,මේරි (හඬ පමණි)||ලියුම||1</script>
+
+
+  <script>
+    const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    let S; try { S = JSON.parse(localStorage.getItem('rd')) } catch(e){}
+    S = S || { cur: null, projects: [] };
+    S.projects.forEach(p => { p.advances = p.advances || []; });
+    const save = () => { try { localStorage.setItem('rd', JSON.stringify(S)) } catch(e){} };
+
+    const SEED = `#Per Episode Costs (10 Episodes)
+Director|20000|10
+Screen Writer|20000|10
+Production Designer|20000|10
+Art Director|20000|10
+Editor & Color|20000|10
+Assistant Director|10000|10
+#Full Payment / Fixed Costs
+Music + Theme Song Visual|200000|1
+#Per Shooting Day Costs (8 Days)
+Location|25000|8
+Transport|60000|8
+Food & Beverages|50000|8
+Lodging|15000|10
+Art department|10000|10
+Make Up|15000|8
+DOP|15000|8
+2nd DOP|10000|8
+Production Manager|10000|8
+2nd Assistant Director|5000|8
+Production Assistant|5000|8
+Equipments|30000|8
+Unit bata|43750|8
+Other production cost|10000|8
+Action Vehicles|10000|8
+#Talents / Cast (Per Day Costs)
+Senali Fonseka|25000|5
+Randika Gunathilake|30000|6
+Udayanthi Kulathunge|25000|4
+Suhandi Wosadi|25000|4
+Paboda Sandeepani|30000|3
+Jenat Anthony|30000|2
+Vimukthi Kiriella|15000|6
+Wathsala Diyalagoda|20000|2
+Gayathrie Dias|25000|2
+Kamal Deshapriya|20000|2
+Isuru Lokuhettiarachchi|25000|1
+Nethu Gamalath|20000|1
+Dulan Liyanage|15000|1
+Neha Balasooriya|15000|1
+Doctor|10000|1
+02 Nurses|10000|1
+03 Servants|10000|1
+Surprise Team|12000|1
+Nimal Jayasinghe|20000|1
+Samanthi Lanarol|20000|1
+Magician|10000|1
+Samantha Paranaliyana|20000|1
+Driver|3000|1
+Loku Amma|10000|1
+Loku Thaththa|10000|1
+Driver|3000|1`;
+
+    const seed = () => {
+      const b = [];
+      SEED.split('\n').forEach(l => {
+        if(l[0] == '#') b.push({ t: l.slice(1), items: [] });
+        else { const [n,r,q] = l.split('|'); b[b.length-1].items.push({ n, rate: +r, qty: +q }) }
+      });
+      return b;
+    };
+
+    const mk = (name, tpl) => ({ id: Date.now() + '' + Math.random(), name, sched: [], advances: [], budget: tpl ? seed() : [] });
+
+    if(!S.projects.length) {
+      const p = mk('වංසෙ කබල් (Wanse Kabal)', 1);
+      S.projects.push(p);
+      S.cur = p.id;
+    }
+
+    const ST = ['Tap to set', 'Available', 'On Set', 'Standby'];
+    const SEC = {
+      sched: { t: 'Schedule', g: 'Location', f: [['sc','Sc No',1],['dn','Day / Night',1],['blk','Scene block'],['cast','Cast'],['art','Art'],['props','Props'],['veh','Vehicles',1],['pg','Pages',1]] }
+    };
+
+    const TPL = {
+      row: () => ({}),
+      grp: () => ({ name: '', rows: [{}] }),
+      day: () => ({ date: '', groups: [] }),
+      bit: () => ({ n: '', rate: 0, qty: 1 }),
+      bsec: () => ({ t: 'New category', items: [] }),
+      adv: () => ({ date: '', item: '', note: '', amt: 0 })
+    };
+
+    let tab = 'proj';
+    const D = { sched: 0 };
+    const cur = () => S.projects.find(p => p.id == S.cur), walk = (p, o = cur()) => p.split('.').reduce((a, k) => a[k], o);
+    const fm = n => 'LKR ' + Math.round(n).toLocaleString('en-US'), sum = a => a.reduce((x, y) => x + y, 0);
+    const tot = P => P.budget.map(s => sum(s.items.map(i => (i.rate || 0) * (i.qty || 0))));
+    const advT = P => sum((P.advances || []).map(a => +a.amt || 0));
+    const advFor = (P, id) => id ? sum((P.advances || []).filter(a => a.item == id).map(a => +a.amt || 0)) : 0;
+    const itemName = (P, id) => { for(const s of P.budget) for(const i of s.items) if(id && i.id == id) return i.n; return ''; };
+    const advLine = (P, it) => 'Advance paid: ' + fm(advFor(P, it.id)) + ' · Balance: ' + fm((it.rate || 0) * (it.qty || 0) - advFor(P, it.id));
+    const advSpan = (P, it, si, ii) => { const pd = advFor(P, it.id), bal = (it.rate || 0) * (it.qty || 0) - pd; return `<span class="ia${bal < 0 ? ' neg' : ''}" id=ia${si}_${ii}${pd ? '' : ' hidden'}>${advLine(P, it)}</span>`; };
+    function fixIds() {
+      let c = 0;
+      S.projects.forEach(p => { p.advances = p.advances || []; p.budget.forEach(s => s.items.forEach(i => { if(!i.id) { i.id = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); c = 1; } })); });
+      if(c) save();
+    }
+
+    function dayView(k) {
+      const c = SEC[k], days = cur()[k];
+      let d = D[k] = Math.max(0, Math.min(D[k], days.length - 1));
+      let h = `<div class=chips>${days.map((_, i) => `<b class="chip ${i==d?'on':''}" data-day="${k}.${i}">Day ${i+1}</b>`).join('')}<b class=chip data-add="${k}" data-t=day>＋ Day</b></div>`;
+      if(!days.length) return h + '<p class=empty>No days recorded yet. Add your first day ＋</p>';
+      
+      const b = `${k}.${d}`, y = days[d];
+      h += `<div class=bar><input type=date data-path="${b}.date" value="${y.date}"><button data-pdf="${k}.${d}">PDF Day</button><button data-pdf="${k}.all">PDF All</button><button class=x data-del="${b}">🗑</button></div>`;
+      
+      y.groups.forEach((g, gi) => {
+        const gp = `${b}.groups.${gi}`;
+        h += `<section class=grp><div class=gh><input class=gn placeholder="${c.g}" data-path="${gp}.name" value="${esc(g.name)}"><button class=x data-del="${gp}">✕</button></div>`;
+        g.rows.forEach((r, ri) => {
+          const rp = `${gp}.rows.${ri}`;
+          h += '<div class=row>' + c.f.map(([key, lab, w]) => 
+            key == 'st' 
+              ? `<b class="st s${r.st|0}" data-st="${rp}">${ST[r.st|0]}</b>` 
+              : w 
+                ? `<label class=n>${lab}<input data-path="${rp}.${key}" value="${esc(r[key])}"></label>` 
+                : `<label>${lab}<textarea rows=2 data-path="${rp}.${key}">${esc(r[key])}</textarea></label>`
+          ).join('') + `<button class="x rx" data-del="${rp}">✕</button></div>`;
+        });
+        h += `<button class=add data-add="${gp}.rows" data-t=row>＋ Add Row</button></section>`;
+      });
+      return h + `<button class="add big" data-add="${b}.groups" data-t=grp>＋ Add ${c.g}</button>`;
+    }
+
+    function budView() {
+      const P = cur(), t = tot(P);
+      const G = sum(t), A = advT(P); let run = 0;
+      let h = `<div class=gt><span>GRAND TOTAL</span><b id=gt>${fm(G)}</b><div class=gs><div><span>ADVANCE PAID</span><b id=ga>${fm(A)}</b></div><div><span>REMAINING BUDGET</span><b id=gr class="${G - A < 0 ? 'neg' : ''}">${fm(G - A)}</b></div></div></div><div class=bar><button data-pdf=budget class=pri style="width:100%">PDF Budget Report</button></div>`;
+      h += `<section class=grp><div class=gh><span class=ttl>Advance Payments</span><span class=sub id=adt>${fm(A)}</span></div>` +
+        (P.advances.length ? P.advances.map((a, ai) => {
+          const ap = `advances.${ai}`; run += +a.amt || 0;
+          return `<div class=row><label class=n>Date<input type=date data-path="${ap}.date" value="${esc(a.date)}"></label><label class=n>Amount<input type=number inputmode=decimal data-path="${ap}.amt" value="${a.amt}"></label><label>Paid for (budget item)<select data-path="${ap}.item"><option value="">- Not linked to an item -</option>${P.budget.map(sc => `<optgroup label="${esc(sc.t)}">` + sc.items.map(it => `<option value="${it.id}"${a.item == it.id ? ' selected' : ''}>${esc(it.n || '(unnamed)')} - ${fm((it.rate || 0) * (it.qty || 0))}</option>`).join('') + '</optgroup>').join('')}</select></label><label>Paid to / Note<input data-path="${ap}.note" value="${esc(a.note)}" placeholder="e.g. Director - advance"></label><span class=lt id=ab${ai}>Remaining after: ${fm(G - run)}</span><button class="x rx" data-del="${ap}">✕</button></div>`;
+        }).join('') : '<p class=empty style="padding:10px 0 16px">No advance payments recorded yet.</p>') +
+        `<button class=add data-add=advances data-t=adv>＋ Add Advance Payment</button></section>`;
+      P.budget.forEach((s, si) => {
+        h += `<section class=grp><div class=gh><input class=gn data-path="budget.${si}.t" value="${esc(s.t)}"><span class=sub id=bs${si}>${fm(t[si])}</span><button class=x data-del="budget.${si}">✕</button></div>` +
+        s.items.map((it, ii) => {
+          const p = `budget.${si}.items.${ii}`;
+          return `<div class=row><label>Item<input data-path="${p}.n" value="${esc(it.n)}"></label><label class=n>Rate<input type=number inputmode=decimal data-path="${p}.rate" value="${it.rate}"></label><label class=n>Qty / Days<input type=number inputmode=decimal data-path="${p}.qty" value="${it.qty}"></label><span class=lt id=l${si}_${ii}>${fm(it.rate*it.qty)}</span>${advSpan(P, it, si, ii)}<button class="x rx" data-del="${p}">✕</button></div>`;
+        }).join('') +
+        `<button class=add data-add="budget.${si}.items" data-t=bit>＋ Add Item</button></section>`;
+      });
+      return h + `<button class="add big" data-add=budget data-t=bsec>＋ Add Category</button>`;
+    }
+
+    function updAdv(P, G) {
+      const A = advT(P); let run = 0;
+      if($('#ga')) $('#ga').textContent = fm(A);
+      if($('#gr')) { $('#gr').textContent = fm(G - A); $('#gr').classList.toggle('neg', G - A < 0); }
+      if($('#adt')) $('#adt').textContent = fm(A);
+      P.advances.forEach((x, i) => { run += +x.amt || 0; if($('#ab' + i)) $('#ab' + i).textContent = 'Remaining after: ' + fm(G - run); });
+    }
+
+    function upd() {
+      const P = cur(), t = tot(P);
+      $('#gt').textContent = fm(sum(t));
+      updAdv(P, sum(t));
+      P.budget.forEach((s, i) => {
+        if($('#bs'+i)) $('#bs'+i).textContent = fm(t[i]);
+        s.items.forEach((it, j) => {
+          if($('#l'+i+'_'+j)) $('#l'+i+'_'+j).textContent = fm(it.rate * it.qty);
+          const ia = $('#ia'+i+'_'+j);
+          if(ia) { const pd = advFor(P, it.id); ia.hidden = !pd; ia.textContent = advLine(P, it); ia.classList.toggle('neg', (it.rate || 0) * (it.qty || 0) - pd < 0); }
+        });
+      });
+    }
+
+    function projView() {
+      return S.projects.map(p => `
+        <div class="grp pj" data-open="${p.id}">
+          <div>
+            <b style="font-size:16px; color:var(--ac);">${esc(p.name)}</b><br>
+            <small>${p.sched.length} Days · ${fm(sum(tot(p)))}</small>
+          </div>
+          <button class=x data-pdel="${p.id}">🗑</button>
+        </div>
+      `).join('') + `
+        <button class="big pri add" data-new style="margin-top:10px;">＋ New Project</button>
+        <div class=bar style="margin-top:10px;">
+          <button data-exp style="flex:1;">⬇ Backup Data</button>
+          <button onclick="$('#f').click()" style="flex:1;">⬆ Restore Data</button>
+        </div>
+        <input id=f type=file hidden accept=.json>
+      `;
+    }
+
+    function render() {
+      fixIds();
+      const P = cur();
+      if(!P) tab = 'proj';
+      $('#t').textContent = P ? P.name : 'Reel Desk';
+      $('#st').textContent = { proj: 'Projects', budget: 'Budget Sheet' }[tab] || SEC[tab].t;
+      $('main').innerHTML = tab == 'proj' ? projView() : tab == 'budget' ? budView() : dayView(tab);
+      document.querySelectorAll('nav b').forEach(b => b.classList.toggle('on', b.dataset.tab == tab));
+    }
+
+    function pdf(ref) {
+      const P = cur(), [k, i] = ref.split('.');
+      let h = '';
+      const printHeader = (subTitle) => `
+        <div class="pr-hdr">
+          <div>
+            <h1>${esc(P.name)}</h1>
+            <h2>${subTitle}</h2>
+          </div>
+          <div class="pr-credit">Creation by Gavindu Deesura</div>
+        </div>
+      `;
+
+      if(k == 'budget') {
+        const t = tot(P), n0 = v => Math.round(v).toLocaleString();
+        h = `<div class=pg>${printHeader('BUDGET BREAKDOWN REPORT')}<table><tr><th>Category / Item</th><th>Rate (LKR)</th><th>Qty / Days</th><th class=r>Total (LKR)</th><th class=r>Advance Paid</th><th class=r>Balance</th></tr>` +
+        P.budget.map((s, si) => {
+          const sa = sum(s.items.map(x => advFor(P, x.id)));
+          return `<tr><td colspan=3><b>${esc(s.t)}</b></td><td class=r><b>${n0(t[si])}</b></td><td class=r><b>${n0(sa)}</b></td><td class=r><b>${n0(t[si] - sa)}</b></td></tr>` +
+          s.items.map(x => { const pd = advFor(P, x.id), tt = x.rate * x.qty; return `<tr><td>${esc(x.n)}</td><td class=r>${x.rate.toLocaleString()}</td><td class=r>${x.qty}</td><td class=r>${n0(tt)}</td><td class=r>${pd ? n0(pd) : ''}</td><td class=r>${pd ? n0(tt - pd) : ''}</td></tr>`; }).join('');
+        }).join('') +
+        `<tr><th colspan=3>GRAND TOTAL</th><th class=r>${n0(sum(t))}</th><th class=r>${n0(advT(P))}</th><th class=r>${n0(sum(t) - advT(P))}</th></tr></table>` +
+        `<h3>Advance Payments</h3><table><tr><th>Date</th><th>Paid to / Note</th><th>For item</th><th class=r>Amount (LKR)</th></tr>` +
+        (P.advances || []).map(a => `<tr><td>${esc(a.date)}</td><td>${esc(a.note)}</td><td>${esc(itemName(P, a.item))}</td><td class=r>${n0(+a.amt || 0)}</td></tr>`).join('') +
+        `<tr><th colspan=3>TOTAL ADVANCE PAID</th><th class=r>${n0(advT(P))}</th></tr><tr><th colspan=3>REMAINING BUDGET</th><th class=r>${n0(sum(t) - advT(P))}</th></tr></table></div>`;
+      } else {
+        const c = SEC[k], ds = i == 'all' ? P[k].map((d, n) => [d, n]) : [[P[k][i], +i]];
+        ds.forEach(([d, n]) => {
+          h += `<div class=pg>${printHeader(`${c.t.toUpperCase()} — DAY ${String(n+1).padStart(2,'0')} ${d.date ? '&nbsp;(' + esc(d.date) + ')' : ''}`)}` + 
+          d.groups.map(g => `<h3>${c.g}: ${esc(g.name)}</h3><table><tr>${c.f.map(f => `<th>${f[1]}</th>`).join('')}</tr>` + 
+          g.rows.map(r => `<tr>${c.f.map(([key]) => `<td>${key == 'st' ? ST.slice(1).map((s, j) => (r.st == j + 1 ? '☑ ' : '☐ ') + s).join('<br>') : esc(r[key])}</td>`).join('')}</tr>`).join('') + 
+          '</table>').join('') + '</div>';
+        });
+      }
+      $('#pr').innerHTML = h;
+      setTimeout(() => window.print(), 150);
+    }
+
+    document.addEventListener('click', e => {
+      const t = e.target.closest('[data-tab],[data-day],[data-add],[data-del],[data-st],[data-pdf],[data-open],[data-new],[data-exp],[data-pdel]');
+      if(!t) return;
+      const d = t.dataset;
+      
+      if(d.tab) tab = d.tab;
+      else if(d.day) { const [k, i] = d.day.split('.'); D[k] = +i; }
+      else if(d.add) { const a = walk(d.add); a.push(TPL[d.t]()); if(d.t == 'day') D[d.add] = a.length - 1; }
+      else if(d.del) { if(!confirm('Delete this item?')) return; const p = d.del.split('.'), i = +p.pop(); walk(p.join('.')).splice(i, 1); if(p.length == 1 && D[p[0]] != null) D[p[0]] = Math.max(0, i - 1); }
+      else if(d.st) { const r = walk(d.st); r.st = ((r.st | 0) + 1) % 4; }
+      else if(d.pdf) return pdf(d.pdf);
+      else if(d.open) { S.cur = d.open; tab = 'sched'; }
+      else if(d.new !== undefined) { const n = prompt('Project Name'); if(!n) return; const p = mk(n, confirm('Start with Wanse Kabal budget template?')); S.projects.push(p); S.cur = p.id; tab = 'sched'; }
+      else if(d.pdel) { if(!confirm('Delete project permanently?')) return; S.projects = S.projects.filter(p => p.id != d.pdel); if(S.cur == d.pdel) S.cur = S.projects[0]?.id; }
+      else if(d.exp !== undefined) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S)], { type: 'application/json' })); a.download = 'reeldesk-backup.json'; a.click(); return; }
+      
+      save(); render();
+    });
+
+    document.addEventListener('input', e => {
+      const el = e.target, p = el.dataset.path; if(!p) return;
+      const a = p.split('.'), k = a.pop();
+      walk(a.join('.'))[k] = el.type == 'number' ? +el.value : el.value;
+      save(); if(a[0] == 'budget' || a[0] == 'advances') upd();
+    });
+
+    document.addEventListener('change', e => {
+      if(e.target.id != 'f') return;
+      const r = new FileReader();
+      r.onload = () => {
+        try {
+          const x = JSON.parse(r.result);
+          x.projects.forEach(p => { p.id = Date.now() + '' + Math.random(); p.advances = p.advances || []; S.projects.push(p); });
+          save(); render();
+        } catch(_) { alert('Invalid backup JSON file'); }
+      };
+      r.readAsText(e.target.files[0]);
+    });
+
+    function parse(t, keys) {
+      const days = []; let g;
+      t.trim().split('\n').forEach(l => {
+        if(l[0] == '@') days.push({ date: '', groups: [] });
+        else if(l[0] == '>') { g = { name: l.slice(1), rows: [] }; days[days.length - 1].groups.push(g); }
+        else { const v = l.split('|'), r = {}; keys.forEach((k, i) => r[k] = v[i] || ''); g.rows.push(r); }
+      });
+      return days;
+    }
+
+    function SEEDWK() {
+      S.projects.forEach(p => {
+        if(/Wanse/.test(p.name) && !p.sched.length) {
+          p.sched = parse($('#wsd').textContent, ['sc','dn','blk','cast','art','props','veh','pg']);
+        }
+      });
+    }
+
+    SEEDWK(); save(); render();
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  </script>
+</body>
+</html>
